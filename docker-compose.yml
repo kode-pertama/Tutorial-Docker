@@ -1,0 +1,51 @@
+# Membuat Service
+services:
+  dbms_mysql: # Nama service (key) yang akan digunakan untuk berkomunikasi antar service.
+    image: mysql:latest # Image yang akan digunakan
+    container_name: mysql-container # Nama untuk container
+    restart: always # Karena ada kemungkinan container mysql mati jadi kita akan menghidupkannya secara otomatis.
+    environment: # Setting config untuk DBMS mysql
+      MYSQL_ROOT_PASSWORD: dev # Password untuk user utama
+      MYSQL_USER: develost # Membuat user baru (Opsional)
+      MYSQL_PASSWORD: rahasia # Password untuk user baru (Opsional)
+    volumes: # Supaya database tidak hilang jika container di hapus kita akan menggunakan volume yang sudah pernah dibuat (dbms_mysql).
+      - dbms_mysql:/var/lib/mysql
+    networks: # Kita membuat network supaya sertiap service bisa saling berinteraksi.
+      - app-network
+    deploy: # Deploy digunakan untuk konfigurasi tingkat lanjut
+      resources:
+        limits: # Tambahkan limit untuk membatasi CPU dan Storage
+          cpus: "0.5" # Maksimum penggunaan CPU 50% dari satu core
+          memory: "512M" # Maksimum penggunaan storage 256 MB
+        reservations:
+          cpus: "0.2"
+          memory: "256M"
+
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: pma
+    environment:
+      PMA_HOST: dbms_mysql # Ambil dari nama service mysql
+      PMA_USER: root
+      PMA_PASSWORD: dev # Ini opsional, jika tidak diisi nanti pas dihalaman phpmyadmin temen-temen akan di suruh isi password manual
+    ports: # Kita melakukan publish port supaya bisa di akses dari luar (Browser)
+      - "8080:80" # 8080 itu port bebas, 80 itu port bawaan dari image phpmyadmin
+    depends_on: # Perintah ini berfungsi supaya service pma dijalankan setelah service yang disebutkan (Disini service pma akan berjalan setelah service mysql)
+      - dbms_mysql
+    networks:
+      - app-network
+    deploy: # Deploy digunakan untuk konfigurasi tingkat lanjut
+      resources:
+        limits: # Tambahkan limit untuk membatasi CPU dan Storage
+          cpus: "0.25" # Maksimum penggunaan CPU 25% dari satu core
+          memory: "256M" # Maksimum penggunaan storage 256 MB
+        reservations:
+          cpus: "0.1"
+          memory: "128M"
+
+volumes:
+  dbms_mysql:
+    external: true
+
+networks:
+  app-network: # Jaringan untuk komunikasi antar service
